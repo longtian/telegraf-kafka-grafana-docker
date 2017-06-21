@@ -1,0 +1,42 @@
+version: "2"
+services:
+  zookeeper:
+    image: zookeeper
+  kafka:
+    image: ches/kafka:0.9.0.1
+    depends_on:
+      - zookeeper
+    environment:
+      ZOOKEEPER_IP: zookeeper
+  influxdb:
+    image: influxdb
+    ports:
+      - "8086:8086"
+  manager:
+    image: sheepkiller/kafka-manager
+    ports:
+      - "9000:9000"
+    depends_on:
+      - kafka
+    environment:
+       ZK_HOSTS: "zookeeper:2181"
+       APPLICATION_SECRET: letmein
+  telegraf-host:
+    image: telegraf
+    depends_on:
+      - "influxdb"
+      - "kafka"
+    volumes:
+      - "./host/telegraf.conf:/etc/telegraf/telegraf.conf:ro"
+  telegraf-consumer:
+    image: telegraf
+    depends_on:
+      - "telegraf-host"
+    volumes:
+      - "./consumer/telegraf.conf:/etc/telegraf/telegraf.conf:ro"
+  grafana:
+    image: grafana/grafana
+    volumes:
+      - "./grafana/grafana.db:/var/lib/grafana/grafana.db"
+    ports:
+      - "3000:3000"
